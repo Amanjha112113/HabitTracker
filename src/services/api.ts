@@ -2,26 +2,35 @@ import { supabase } from '../lib/supabase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
+const getHeaders = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    return {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    };
+};
+
 export const api = {
     // Habits
     getHabits: async () => {
-        const res = await fetch(`${API_URL}/habits`);
+        const res = await fetch(`${API_URL}/habits`, { headers: await getHeaders() });
         return await res.json();
     },
     saveHabit: async (habit: any) => {
         await fetch(`${API_URL}/habits`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await getHeaders(),
             body: JSON.stringify(habit),
         });
     },
     deleteHabit: async (id: string) => {
-        await fetch(`${API_URL}/habits/${id}`, { method: 'DELETE' });
+        await fetch(`${API_URL}/habits/${id}`, { method: 'DELETE', headers: await getHeaders() });
     },
 
     // Journal
     getJournal: async () => {
-        const res = await fetch(`${API_URL}/journal`);
+        const res = await fetch(`${API_URL}/journal`, { headers: await getHeaders() });
         const data = await res.json();
         // Convert array to Record<string, JournalEntry>
         return data.reduce((acc: any, entry: any) => {
@@ -32,25 +41,25 @@ export const api = {
     saveJournalEntry: async (entry: any) => {
         await fetch(`${API_URL}/journal`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await getHeaders(),
             body: JSON.stringify(entry),
         });
     },
 
     // Notes
     getNotes: async () => {
-        const res = await fetch(`${API_URL}/notes`);
+        const res = await fetch(`${API_URL}/notes`, { headers: await getHeaders() });
         return await res.json();
     },
     saveNote: async (note: any) => {
         await fetch(`${API_URL}/notes`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await getHeaders(),
             body: JSON.stringify(note),
         });
     },
     deleteNote: async (id: string) => {
-        await fetch(`${API_URL}/notes/${id}`, { method: 'DELETE' });
+        await fetch(`${API_URL}/notes/${id}`, { method: 'DELETE', headers: await getHeaders() });
     },
 
     // Auth/User (Supabase)
@@ -124,13 +133,13 @@ export const api = {
 
     // Settings
     getSettings: async () => {
-        const res = await fetch(`${API_URL}/settings`);
+        const res = await fetch(`${API_URL}/settings`, { headers: await getHeaders() });
         return await res.json();
     },
     updateSettings: async (settings: any) => {
         await fetch(`${API_URL}/settings`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await getHeaders(),
             body: JSON.stringify(settings),
         });
     }

@@ -1,0 +1,29 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+  pre_build:
+    commands:
+      - echo Installing frontend dependencies...
+      - npm install
+      - echo Installing backend dependencies...
+      - cd server
+      - npm install
+      - cd ..
+  build:
+    commands:
+      - echo Building the Vite frontend...
+      - npm run build
+  post_build:
+    commands:
+      - echo Build completed. Preparing artifacts...
+
+artifacts:
+  files:
+    - dist/**/*
+    - server/**/*
+    - package.json
+    - package-lock.json
+  name: habit-tracker-build-artifact

@@ -5,8 +5,8 @@ const db = require('../db');
 // Get all journal entries
 router.get('/', (req, res) => {
     try {
-        const stmt = db.prepare('SELECT * FROM journal_entries');
-        const entries = stmt.all();
+        const stmt = db.prepare('SELECT * FROM journal_entries WHERE user_id = ?');
+        const entries = stmt.all(req.user_id);
         // Convert object to record map keyed by date, or array depending on frontend need.
         // Frontend expects a Record<string, JournalEntry>.
         // Let's return an array and let frontend convert, or convert here.
@@ -26,12 +26,13 @@ router.post('/', (req, res) => {
 
     try {
         const stmt = db.prepare(`
-      INSERT OR REPLACE INTO journal_entries (date, mood_text, gratitude, highlights, challenges, learning, goals, notes, lastUpdated)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO journal_entries (id, user_id, date, mood_text, gratitude, highlights, challenges, learning, goals, notes, lastUpdated)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-        // We map frontend 'mood' to 'mood_text' column
-        stmt.run(date, mood, gratitude, highlights, challenges, learning, goals, notes, lastUpdated);
+        // Generate a simple id based on user_id and date
+        const entryId = `${req.user_id}_${date}`;
+        stmt.run(entryId, req.user_id, date, mood, gratitude, highlights, challenges, learning, goals, notes, lastUpdated);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
