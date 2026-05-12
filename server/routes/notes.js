@@ -1,27 +1,41 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const { getSupabase } = require('../db');
 
 // Get all notes
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const stmt = db.prepare('SELECT * FROM notes WHERE user_id = ? ORDER BY createdAt DESC');
-        const notes = stmt.all(req.user_id);
-        res.json(notes);
+        const supabase = getSupabase(req.token);
+        const { data, error } = await supabase
+            .from('notes')
+            .select('*')
+            .eq('user_id', req.user_id)
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        res.json(data);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
 // Save or Update Note
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     const { id, title, type, content, createdAt } = req.body;
     try {
-        const stmt = db.prepare(`
-      INSERT OR REPLACE INTO notes (id, user_id, title, type, content, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-        stmt.run(id, req.user_id, title, type, content, createdAt);
+        const supabase = getSupabase(req.token);
+        const { error } = await supabase
+            .from('notes')
+            .upsert({
+                id,
+                user_id: req.user_id,
+                title,
+                type,
+                content,
+                created_at: createdAt || new Date().toISOString()
+            });
+        
+        if (error) throw error;
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -29,11 +43,17 @@ router.post('/', (req, res) => {
 });
 
 // Delete Note
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const stmt = db.prepare('DELETE FROM notes WHERE id = ? AND user_id = ?');
-        stmt.run(id, req.user_id);
+        const supabase = getSupabase(req.token);
+        const { error } = await supabase
+            .from('notes')
+            .delete()
+            .eq('id', id)
+            .eq('user_id', req.user_id);
+        
+        if (error) throw error;
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });

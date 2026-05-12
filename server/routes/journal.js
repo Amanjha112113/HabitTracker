@@ -1,38 +1,45 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const { getSupabase } = require('../db');
 
 // Get all journal entries
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const stmt = db.prepare('SELECT * FROM journal_entries WHERE user_id = ?');
-        const entries = stmt.all(req.user_id);
-        // Convert object to record map keyed by date, or array depending on frontend need.
-        // Frontend expects a Record<string, JournalEntry>.
-        // Let's return an array and let frontend convert, or convert here.
-        // For API standard, returning array is better.
-        res.json(entries);
+        const supabase = getSupabase(req.token);
+        const { data, error } = await supabase
+            .from('journal_entries')
+            .select('*')
+            .eq('user_id', req.user_id);
+        
+        if (error) throw error;
+        res.json(data);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
 // Save Journal Entry
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     const { date, mood, gratitude, highlights, challenges, learning, goals, notes, lastUpdated } = req.body;
 
-    // Handl mood: frontend sends string (e.g. 'happy'), db stores TEXT.
-    // Validate mood if necessary, or trust frontend.
-
     try {
-        const stmt = db.prepare(`
-      INSERT OR REPLACE INTO journal_entries (id, user_id, date, mood_text, gratitude, highlights, challenges, learning, goals, notes, lastUpdated)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-        // Generate a simple id based on user_id and date
-        const entryId = `${req.user_id}_${date}`;
-        stmt.run(entryId, req.user_id, date, mood, gratitude, highlights, challenges, learning, goals, notes, lastUpdated);
+        const supabase = getSupabase(req.token);
+        const { error } = await supabase
+            .from('journal_entries')
+            .upsert({
+                user_id: req.user_id,
+                date,
+                mood_text: mood, // Map frontend mood to mood_text
+                gratitude,
+                highlights,
+                challenges,
+                learning,
+                goals,
+                notes,
+                last_updated: lastUpdated || new Date().toISOString()
+            });
+        
+        if (error) throw error;
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });

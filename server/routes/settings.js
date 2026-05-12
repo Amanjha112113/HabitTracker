@@ -1,25 +1,29 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const { getSupabase } = require('../db');
+
+const defaultSettings = {
+    dailyReminders: true,
+    weeklyReports: true,
+    achievementNotifications: true,
+    startWeekOn: 'Monday',
+    theme: 'Light',
+    timezone: 'Auto-detect',
+    secureSession: false
+};
 
 // Get Settings
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const stmt = db.prepare('SELECT settings FROM users WHERE id = ?');
-        const user = stmt.get(req.user_id);
-        if (user && user.settings) {
-            res.json(JSON.parse(user.settings));
+        const supabase = getSupabase(req.token);
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error) throw error;
+
+        if (user && user.user_metadata && user.user_metadata.settings) {
+            res.json(user.user_metadata.settings);
         } else {
-            // Default settings
-            res.json({
-                dailyReminders: true,
-                weeklyReports: true,
-                achievementNotifications: true,
-                startWeekOn: 'Monday',
-                theme: 'Light',
-                timezone: 'Auto-detect',
-                secureSession: false
-            });
+            res.json(defaultSettings);
         }
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -27,18 +31,15 @@ router.get('/', (req, res) => {
 });
 
 // Update Settings
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     const settings = req.body;
     try {
-        // We lazily insert the user if they don't exist yet, then update settings
-        const check = db.prepare('SELECT id FROM users WHERE id = ?').get(req.user_id);
-        if (check) {
-            const stmt = db.prepare('UPDATE users SET settings = ? WHERE id = ?');
-            stmt.run(JSON.stringify(settings), req.user_id);
-        } else {
-            const stmt = db.prepare('INSERT INTO users (id, settings) VALUES (?, ?)');
-            stmt.run(req.user_id, JSON.stringify(settings));
-        }
+        const supabase = getSupabase(req.token);
+        const { error } = await supabase.auth.updateUser({
+            data: { settings: settings }
+        });
+        
+        if (error) throw error;
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });

@@ -29,6 +29,7 @@ app.use('/api/habits', auth, require('./routes/habits'));
 app.use('/api/journal', auth, require('./routes/journal'));
 app.use('/api/notes', auth, require('./routes/notes'));
 app.use('/api/settings', auth, require('./routes/settings'));
+app.use('/api/quotes', require('./routes/quotes'));
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);

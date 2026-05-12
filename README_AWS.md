@@ -1,6 +1,6 @@
 # AWS CI/CD Setup Guide
 
-This project is configured with a `buildspec.yml` file and is ready to be deployed using AWS services. Follow this guide to set up your pipeline.
+This project is configured with a `buildspec.yml` file and is ready to be deployed using AWS services. 
 
 ## Prerequisites
 1. An AWS Account.
@@ -24,26 +24,21 @@ CodeBuild will use the `buildspec.yml` file in the root of the project to build 
 1. Open the **AWS CodeBuild** console.
 2. Click **Create build project**.
 3. **Source**: Select AWS CodeCommit and your repository.
-4. **Environment**: 
-   - Managed image: Amazon Linux 2 or Ubuntu.
-   - Runtime: Standard.
-   - Image: Latest available.
-5. **Environment Variables**: **[CRITICAL]** Add the following variables here:
+4. **EnvironmentVariables**: **[CRITICAL]** Add the following variables here (Vite needs these during build time):
    - `VITE_SUPABASE_URL` = (Your Supabase URL)
    - `VITE_SUPABASE_ANON_KEY` = (Your Supabase Anon Key)
-   - `SUPABASE_JWT_SECRET` = (Your Supabase JWT Secret)
-6. **Buildspec**: Select "Use a buildspec file" (it will automatically find `buildspec.yml`).
+5. **Buildspec**: Select "Use a buildspec file" (it will automatically find `buildspec.yml`).
 
 ## Step 3: Create AWS CodePipeline
-CodePipeline will automate the flow from code change to build.
+CodePipeline will automate the flow from code change to build and deployment.
 
 1. Open the **AWS CodePipeline** console.
 2. Click **Create pipeline**.
 3. **Source**: Select AWS CodeCommit, your repository, and branch `main`.
 4. **Build**: Select AWS CodeBuild and the project you created in Step 2.
-5. **Deploy**: You can skip this for now or select a deployment target like AWS Elastic Beanstalk (for the backend) or AWS S3 (for the static frontend).
+5. **Deploy**: 
+   - For the **Frontend**: You can deploy the `dist` folder to **AWS S3** for static hosting.
+   - For the **Backend**: You can deploy the `server` folder to **AWS Elastic Beanstalk** or **AWS App Runner**.
 
-## Note on Architecture
-Since this is a full-stack app with a Node.js backend and a React frontend:
-- The **Frontend** (`dist` folder) is static and can be hosted on **AWS S3** with CloudFront.
-- The **Backend** (`server` folder) needs a Node.js environment like **AWS Elastic Beanstalk** or an **EC2 instance**.
+## Note on Database
+The backend is now configured to connect to **Supabase** (Postgres) instead of local SQLite. This ensures that your data is not lost when the server restarts on AWS!

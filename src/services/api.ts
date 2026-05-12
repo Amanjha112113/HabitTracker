@@ -34,7 +34,7 @@ export const api = {
         const data = await res.json();
         // Convert array to Record<string, JournalEntry>
         return data.reduce((acc: any, entry: any) => {
-            acc[entry.date] = entry;
+            acc[entry.date] = { ...entry, mood: entry.mood_text }; // Map mood_text back to mood for frontend
             return acc;
         }, {});
     },
@@ -67,7 +67,6 @@ export const api = {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return null;
 
-        // Map Supabase user to App UserProfile
         return {
             firstName: user.user_metadata?.firstName || 'User',
             lastName: user.user_metadata?.lastName || '',
@@ -83,7 +82,6 @@ export const api = {
         });
         if (error) throw error;
 
-        // Return mapped user
         const user = data.user;
         return {
             firstName: user?.user_metadata?.firstName || 'User',
@@ -101,14 +99,11 @@ export const api = {
                 data: {
                     firstName: user.firstName,
                     lastName: user.lastName,
-                    // We can generate an avatar here or let getUser handle it
                 }
             }
         });
         if (error) throw error;
 
-        // Return mapped user
-        // Note: If email confirmation is enabled, user might be null or session null.
         const createdUser = data.user;
         if (!createdUser) return null;
 
@@ -121,7 +116,6 @@ export const api = {
     },
 
     updateUser: async (user: any) => {
-        // Update Supabase metadata if needed
         await supabase.auth.updateUser({
             data: {
                 firstName: user.firstName,
@@ -142,5 +136,11 @@ export const api = {
             headers: await getHeaders(),
             body: JSON.stringify(settings),
         });
+    },
+
+    // Extra Feature: Get Random Quote
+    getQuote: async () => {
+        const res = await fetch(`${API_URL}/quotes`);
+        return await res.json();
     }
 };
